@@ -1,5 +1,6 @@
 package com.prgrms.devcourse.configures;
 
+import com.prgrms.devcourse.user.UserService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -41,11 +42,11 @@ import java.util.List;
 public class WebSecurityConfigure extends WebSecurityConfigurerAdapter {
     private final Logger logger = LoggerFactory.getLogger(WebSecurityConfigure.class);
 
-    private DataSource dataSource;
+    private UserService userService;
 
     @Autowired
-    public void setDataSource(DataSource dataSource) {
-        this.dataSource = dataSource;
+    public void setUserService(UserService userService) {
+        this.userService = userService;
     }
 
     @Bean
@@ -99,7 +100,7 @@ public class WebSecurityConfigure extends WebSecurityConfigurerAdapter {
                     .antMatchers("/admin").access("hasRole('ADMIN') and isFullyAuthenticated()")
                     .anyRequest().permitAll()
 //                    .expressionHandler(securityExpressionHandler())
-                    .accessDecisionManager(accessDecisionManager())
+//                    .accessDecisionManager(accessDecisionManager())
                     .and()
                 .formLogin()
                     .defaultSuccessUrl("/")
@@ -146,16 +147,19 @@ public class WebSecurityConfigure extends WebSecurityConfigurerAdapter {
 //                .withUser("admin01").password("{noop}admin123").roles("ADMIN")
 //                .and()
 //                .withUser("admin02").password("{noop}admin123").roles("ADMIN");
-        auth.jdbcAuthentication()
-                .dataSource(dataSource)
-                .usersByUsernameQuery("SELECT login_id, password, true FROM users WHERE login_id = ?")
-                .groupAuthoritiesByUsername(
-                        "SELECT u.login_id, g.name, p.name\n" +
-                        "FROM users u JOIN groups g ON u.group_id = g.id\n" +
-                        "LEFT JOIN group_permission gp ON g.id = gp.group_id\n" +
-                        "JOIN permissions p ON p.id = gp.permission_id\n" +
-                        "WHERE u.login_id = ?")
-                .getUserDetailsService().setEnableAuthorities(false);
+
+//        auth.jdbcAuthentication()
+//                .dataSource(dataSource)
+//                .usersByUsernameQuery("SELECT login_id, password, true FROM users WHERE login_id = ?")
+//                .groupAuthoritiesByUsername(
+//                        "SELECT u.login_id, g.name, p.name\n" +
+//                        "FROM users u JOIN groups g ON u.group_id = g.id\n" +
+//                        "LEFT JOIN group_permission gp ON g.id = gp.group_id\n" +
+//                        "JOIN permissions p ON p.id = gp.permission_id\n" +
+//                        "WHERE u.login_id = ?")
+//                .getUserDetailsService().setEnableAuthorities(false);
+
+        auth.userDetailsService(userService);
     }
 
     @Bean
@@ -179,12 +183,12 @@ public class WebSecurityConfigure extends WebSecurityConfigurerAdapter {
         );
     }
 
-    @Bean
-    public AccessDecisionManager accessDecisionManager() {
-        List<AccessDecisionVoter<?>> voters = new ArrayList<>();
-        voters.add(new WebExpressionVoter());
-        voters.add(new OddAdminVoter(new AntPathRequestMatcher("/admin")));
-
-        return new UnanimousBased(voters);
-    }
+//    @Bean
+//    public AccessDecisionManager accessDecisionManager() {
+//        List<AccessDecisionVoter<?>> voters = new ArrayList<>();
+//        voters.add(new WebExpressionVoter());
+//        voters.add(new OddAdminVoter(new AntPathRequestMatcher("/admin")));
+//
+//        return new UnanimousBased(voters);
+//    }
 }
