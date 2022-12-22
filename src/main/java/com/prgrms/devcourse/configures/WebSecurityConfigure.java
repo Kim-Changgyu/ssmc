@@ -1,5 +1,6 @@
 package com.prgrms.devcourse.configures;
 
+import com.prgrms.devcourse.jwt.Jwt;
 import com.prgrms.devcourse.user.UserService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -44,9 +45,16 @@ public class WebSecurityConfigure extends WebSecurityConfigurerAdapter {
 
     private UserService userService;
 
+    private JwtConfigure jwtConfigure;
+
     @Autowired
     public void setUserService(UserService userService) {
         this.userService = userService;
+    }
+
+    @Autowired
+    public void setJwtConfigure(JwtConfigure jwtConfigure) {
+        this.jwtConfigure = jwtConfigure;
     }
 
     @Bean
@@ -62,6 +70,15 @@ public class WebSecurityConfigure extends WebSecurityConfigurerAdapter {
     @Bean
     public DelegatingSecurityContextAsyncTaskExecutor taskExecutor(@Qualifier("myAsyncTaskExecutor") AsyncTaskExecutor delegate) {
         return new DelegatingSecurityContextAsyncTaskExecutor(delegate);
+    }
+
+    @Bean
+    public Jwt jwt() {
+        return new Jwt(
+                jwtConfigure.getIssuer(),
+                jwtConfigure.getClientSecret(),
+                jwtConfigure.getExpirySeconds()
+        );
     }
 
 //    @Bean
@@ -96,47 +113,27 @@ public class WebSecurityConfigure extends WebSecurityConfigurerAdapter {
     protected void configure(HttpSecurity http) throws Exception {
         http
                 .authorizeRequests()
-                    .antMatchers("/me", "/asyncHello", "/someMethod").hasAnyRole("USER", "ADMIN")
-                    .antMatchers("/admin").access("hasRole('ADMIN') and isFullyAuthenticated()")
+                    .antMatchers("/api/user/me").hasAnyRole("USER", "ADMIN")
                     .anyRequest().permitAll()
-//                    .expressionHandler(securityExpressionHandler())
-//                    .accessDecisionManager(accessDecisionManager())
                     .and()
+                .csrf()
+                    .disable()
+                .headers()
+                    .disable()
                 .formLogin()
-                    .defaultSuccessUrl("/")
-                    .permitAll()
-                    .and()
+                    .disable()
                 .httpBasic()
-                    .and()
+                    .disable()
                 .logout()
-                    .logoutRequestMatcher(new AntPathRequestMatcher("/logout"))
-                    .logoutSuccessUrl("/")
-                    .invalidateHttpSession(true)
-                    .clearAuthentication(true)
-                    .and()
+                    .disable()
                 .rememberMe()
-                    .key("my-remember-me") // key 값을 지정해주지 않으면 서버 재시작 시 랜덤한 문자열이 지정됨
-                    .rememberMeParameter("remember-me")
-                    .tokenValiditySeconds(300)
-    //                .alwaysRemember(false)
-                    .and()
-                // SSL(TLS) 인증서 설정
-                .requiresChannel()
-                    .anyRequest().requiresSecure()
-                    .and()
-                .anonymous()
-                    .principal("thisIsAnonymousUser")
-                    .authorities("ROLE_ANONYMOUS", "ROLE_UNKNOWN")
+                    .disable()
+                .sessionManagement()
+                    .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                     .and()
                 .exceptionHandling()
                     .accessDeniedHandler(accessDeniedHandler())
-                    .and()
-                .sessionManagement()
-                    .sessionFixation().changeSessionId()
-                    .sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED)
-                    .invalidSessionUrl("/")
-                    .maximumSessions(1)
-                    .maxSessionsPreventsLogin(false);
+                    .and();
     }
 
     @Override
@@ -175,20 +172,4 @@ public class WebSecurityConfigure extends WebSecurityConfigurerAdapter {
             httpServletResponse.getWriter().close();
         };
     }
-
-    public SecurityExpressionHandler<FilterInvocation> securityExpressionHandler() {
-        return new CustomWebSecurityExpressionHandler(
-                new AuthenticationTrustResolverImpl(),
-                "ROLE_"
-        );
-    }
-
-//    @Bean
-//    public AccessDecisionManager accessDecisionManager() {
-//        List<AccessDecisionVoter<?>> voters = new ArrayList<>();
-//        voters.add(new WebExpressionVoter());
-//        voters.add(new OddAdminVoter(new AntPathRequestMatcher("/admin")));
-//
-//        return new UnanimousBased(voters);
-//    }
 }
