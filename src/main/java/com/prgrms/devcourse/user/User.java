@@ -2,6 +2,7 @@ package com.prgrms.devcourse.user;
 
 import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.apache.commons.lang3.builder.ToStringStyle;
+import org.springframework.security.crypto.password.PasswordEncoder;
 
 import javax.persistence.*;
 
@@ -38,6 +39,12 @@ public class User {
 
     public Group getGroup() {
         return group;
+    }
+
+    public void checkPassword(PasswordEncoder passwordEncoder, String credentials) {
+        if (!passwordEncoder.matches(credentials, password)) {
+            throw new IllegalArgumentException("Bad credentials");
+        }
     }
 
     @Override

@@ -1,6 +1,9 @@
 package com.prgrms.devcourse.configures;
 
 import com.prgrms.devcourse.jwt.Jwt;
+import com.prgrms.devcourse.jwt.JwtAuthenticationFilter;
+import com.prgrms.devcourse.jwt.JwtAuthenticationProvider;
+import com.prgrms.devcourse.jwt.JwtSecurityContextRepository;
 import com.prgrms.devcourse.user.UserService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -14,6 +17,7 @@ import org.springframework.security.access.AccessDecisionManager;
 import org.springframework.security.access.AccessDecisionVoter;
 import org.springframework.security.access.expression.SecurityExpressionHandler;
 import org.springframework.security.access.vote.UnanimousBased;
+import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationTrustResolverImpl;
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -31,6 +35,8 @@ import org.springframework.security.task.DelegatingSecurityContextAsyncTaskExecu
 import org.springframework.security.web.FilterInvocation;
 import org.springframework.security.web.access.AccessDeniedHandler;
 import org.springframework.security.web.access.expression.WebExpressionVoter;
+import org.springframework.security.web.context.SecurityContextPersistenceFilter;
+import org.springframework.security.web.context.SecurityContextRepository;
 import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 
 import javax.servlet.http.HttpServletResponse;
@@ -43,17 +49,9 @@ import java.util.List;
 public class WebSecurityConfigure extends WebSecurityConfigurerAdapter {
     private final Logger logger = LoggerFactory.getLogger(WebSecurityConfigure.class);
 
-    private UserService userService;
-
     private JwtConfigure jwtConfigure;
 
-    @Autowired
-    public void setUserService(UserService userService) {
-        this.userService = userService;
-    }
-
-    @Autowired
-    public void setJwtConfigure(JwtConfigure jwtConfigure) {
+    public WebSecurityConfigure(JwtConfigure jwtConfigure) {
         this.jwtConfigure = jwtConfigure;
     }
 
@@ -80,24 +78,6 @@ public class WebSecurityConfigure extends WebSecurityConfigurerAdapter {
                 jwtConfigure.getExpirySeconds()
         );
     }
-
-//    @Bean
-//    public UserDetailsService userDetailsService(DataSource dataSource) {
-//        JdbcDaoImpl jdbcDao = new JdbcDaoImpl();
-//        jdbcDao.setDataSource(dataSource);
-//        jdbcDao.setEnableAuthorities(false);
-//        jdbcDao.setEnableGroups(true);
-//        jdbcDao.setUsersByUsernameQuery("SELECT login_id, password, true FROM users WHERE login_id = ?");
-//        jdbcDao.setGroupAuthoritiesByUsernameQuery(
-//                "SELECT u.login_id, g.name, p.name\n" +
-//                "FROM users u JOIN groups g ON u.group_id = g.id\n" +
-//                "LEFT JOIN group_permission gp ON g.id = gp.group_id\n" +
-//                "JOIN permissions p ON p.id = gp.permission_id\n" +
-//                "WHERE u.login_id = ?"
-//        );
-//
-//        return jdbcDao;
-//    }
 
     @Bean
     public PasswordEncoder passwordEncoder() {
@@ -133,30 +113,37 @@ public class WebSecurityConfigure extends WebSecurityConfigurerAdapter {
                     .and()
                 .exceptionHandling()
                     .accessDeniedHandler(accessDeniedHandler())
+                    .and()
+                .securityContext()
+                    .securityContextRepository(securityContextRepository())
                     .and();
+//                .addFilterAfter(jwtAuthenticationFilter(), SecurityContextPersistenceFilter.class);
     }
 
+    @Bean
+    public JwtAuthenticationProvider jwtAuthenticationProvider(Jwt jwt, UserService userService) {
+        return new JwtAuthenticationProvider(jwt, userService);
+    }
+
+    @Autowired
+    public void configureAuthentication(AuthenticationManagerBuilder builder, JwtAuthenticationProvider provider) {
+        builder.authenticationProvider(provider);
+    }
+
+    @Bean
     @Override
-    protected void configure(AuthenticationManagerBuilder auth) throws Exception {
-//        auth.inMemoryAuthentication()
-//                .withUser("user").password("{noop}user123").roles("USER")
-//                .and()
-//                .withUser("admin01").password("{noop}admin123").roles("ADMIN")
-//                .and()
-//                .withUser("admin02").password("{noop}admin123").roles("ADMIN");
+    public AuthenticationManager authenticationManagerBean() throws Exception {
+        return super.authenticationManagerBean();
+    }
 
-//        auth.jdbcAuthentication()
-//                .dataSource(dataSource)
-//                .usersByUsernameQuery("SELECT login_id, password, true FROM users WHERE login_id = ?")
-//                .groupAuthoritiesByUsername(
-//                        "SELECT u.login_id, g.name, p.name\n" +
-//                        "FROM users u JOIN groups g ON u.group_id = g.id\n" +
-//                        "LEFT JOIN group_permission gp ON g.id = gp.group_id\n" +
-//                        "JOIN permissions p ON p.id = gp.permission_id\n" +
-//                        "WHERE u.login_id = ?")
-//                .getUserDetailsService().setEnableAuthorities(false);
+    public JwtAuthenticationFilter jwtAuthenticationFilter() {
+        Jwt jwt = getApplicationContext().getBean(Jwt.class);
+        return new JwtAuthenticationFilter(jwtConfigure.getHeader(), jwt);
+    }
 
-        auth.userDetailsService(userService);
+    public SecurityContextRepository securityContextRepository() {
+        Jwt jwt = getApplicationContext().getBean(Jwt.class);
+        return new JwtSecurityContextRepository(jwtConfigure.getHeader(), jwt);
     }
 
     @Bean
