@@ -14,7 +14,7 @@ VALUES (1, 1, 1),
 
 -- user 비밀번호 : user123
 -- admin 비밀번호 : admin123
-INSERT INTO users(id, login_id, password, group_id)
-VALUES (1, 'user', '$2a$10$B32L76wyCEGqG/UVKPYk9uqZHCWb7k4ci98VTQ7l.dCEib/kzpKGe', 1),
-       (2, 'admin', '$2a$10$/enTGRjB6noB9NCd8g5kGuLchiTsZsqcUyXkUn4yglUPZ4WZ9MvrK', 2)
-;
+-- INSERT INTO users(id, login_id, password, group_id)
+-- VALUES (1, 'user', '$2a$10$B32L76wyCEGqG/UVKPYk9uqZHCWb7k4ci98VTQ7l.dCEib/kzpKGe', 1),
+--        (2, 'admin', '$2a$10$/enTGRjB6noB9NCd8g5kGuLchiTsZsqcUyXkUn4yglUPZ4WZ9MvrK', 2)
+-- ;
